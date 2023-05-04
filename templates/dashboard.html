@@ -1,0 +1,107 @@
+{% extends 'base.html' %}
+
+{% block scripts %}
+  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+  <script>
+    var socket = io.connect('http://' + document.domain + ':' + location.port);
+    socket.on('update_notes', function(data) {
+      // Refresh the page to show the new note
+      location.reload();
+    });
+  </script>
+{% endblock %}
+
+{% block content %}
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <ul class="flashes">
+      {% for message in messages %}
+      <li{% if 'error' in message %} class="error"{% endif %}>{{ message }}</li>
+      {% endfor %}
+    </ul>
+  {% endif %}
+{% endwith %}
+<style>
+    .note-box-container {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .note-box {
+        border: 1px solid #ddd;
+        border-radius: 4px;
+        padding: 5px;
+        flex: 1;
+        min-width: calc(20% - 20px);
+        max-height: 400px;
+        overflow-y: auto;
+        position: relative;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+    .note-box-title {
+        font-size: 1.2em;
+        font-weight: italic;
+        margin-bottom: 8px;
+        text-align: center;
+        font-family: 'Helvetica Neue', sans-serif;
+    }
+    .note {
+        margin-bottom: 1rem;
+    }
+    .note-details {
+    font-size: 0.6em !important;
+    }
+</style>
+<div class="container">
+    <h1>Welcome to your dashboard, {{ current_user.name }}{% if current_user.role == 'admin' %} (admin){% endif %}</h1>
+
+    <form action="{{ url_for('dashboard') }}" method="POST" class="mb-3">
+        <div class="form-group">
+            <label for="content">Add a new note:</label>
+            <textarea name="content" id="content" rows="4" class="form-control" required></textarea>
+        </div>
+        <div class="form-group">
+            <label for="group_id">Group:</label>
+            <select name="group_id" class="form-control">
+                <option value="">None</option>
+                {% for group in groups %}
+                    <option value="{{ group.id }}">{{ group.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <input type="submit" value="Add Note" class="btn btn-primary">
+    </form>
+
+    <h2>Your Notes:</h2>
+    <div class="note-box-container">
+        {% for group in groups %}
+            <div class="note-box">
+                <div class="note-box-title">{{ group.name }}</div>
+                {% for note in notes %}
+                    {% if (note.group and note.group.id == group.id) or (group.name == "Uncategorized" and not note.group_id)%}
+                        <div class="note">
+                            <p><strong>{{ note.content }}</strong></p>
+                            <span class="note-details">{{ note.member.name if note.member else 'Unknown' }} at {{ note.date_created.strftime('%Y-%m-%d %H:%M:%S')}}</span>
+                            <a href="{{ url_for('delete_note', note_id=note.id) }}"><span class="note-details">Delete</span></a>
+                        </div>
+                    {% endif %}
+                {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+    <br>
+    <br>
+    {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('members') }}" class="btn btn-info">Manage Members</a>
+    {% endif %}
+    {% if current_user.role != 'admin' %}
+        <a href="{{ url_for('view_members') }}" class="btn btn-info">View Members</a>
+    {% endif %}
+    <br>
+    <a href="{{ url_for('groups') }}" class="btn btn-info mt-2">Manage Groups</a>
+    <br>
+    <a href="{{ url_for('logout') }}" class="btn btn-danger mt-2">Logout</a>
+</div>
+{% endblock %}
+
