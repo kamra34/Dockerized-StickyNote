@@ -10,18 +10,32 @@ import sqlalchemy as sa
 from functools import wraps
 import time
 from flask_socketio import SocketIO, emit
+from flask.cli import AppGroup
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
 socketio = SocketIO(app)
 
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///users.db'
+app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///users.db')
 
 class Anonymous(AnonymousUserMixin):
     def __init__(self):
         self.is_admin = False
 
 db = SQLAlchemy(app)
+
+def create_tables():
+    with app.app_context():
+        db.create_all()
+
+database_cli = AppGroup('database', help='Database commands.')
+app.cli.add_command(database_cli)
+
+@database_cli.command('create-tables', help='Create database tables.')
+def create_tables_command():
+    create_tables()
+    print("Tables created.")
+
 login_manager = LoginManager(app)
 login_manager.login_view = 'login'
 login_manager.login_message_category = 'info'
@@ -429,6 +443,8 @@ def delete_group(group_id):
 
     return render_template('delete_group.html', group=group)
 
-if __name__ == '__main__':
-    app.run(debug=True)
+if __name__ == "__main__":
+    if os.environ.get("CREATE_TABLES", None):
+        create_tables()
+    app.run(host="0.0.0.0", port=5000)
 
