@@ -50,7 +50,11 @@
                 {% for note in notes %}
                     {% if (note.group and note.group.id == group.id) or (group.name == "Uncategorized" and not note.group_id)%}
                         <div class="note">
-                            <p><strong>{{ note.content }}</strong></p>
+                            <form action="{{ url_for('update_note') }}" method="post">
+                                <input type="hidden" name="note_id" value="{{ note.id }}">
+                                <textarea name="note_content">{{ note.content }}</textarea>
+                                <button type="submit">Update Note</button>
+                            </form>
                             <span class="note-details">{{ note.member.name if note.member else 'Unknown' }} at {{ note.date_created.strftime('%Y-%m-%d %H:%M:%S')}}</span>
                             <a href="{{ url_for('delete_note', note_id=note.id) }}"><span class="note-details">Delete</span></a>
                         </div>

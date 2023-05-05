@@ -1,30 +1,18 @@
 {% extends 'base.html' %}
 
+{% block extra_head %}
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.3.2/socket.io.min.js" integrity="sha512-YybopSVjZU0feJ5nqjX1OyJnv6aUXX6zt4C4lZb4CfwLskSWl1zknxMBEeD9giUorKjA4D4J4W4o4P4wpCJYg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+{% endblock %}
+
 {% block content %}
-<!--<div id="eink-container">
-    {% for group in groups %}
-    <div class="eink-group">
-      <h2 style="color: rgb(249, 246, 246); text-align: center; font-size: 1.5em; font-family: Arial, sans-serif;">{{
-        group.name }}</h2>
-      {% for note in group.notes %}
-      <div class="eink-note">
-        <h3>{{ note.title }}</h3>
-        <p><strong>{{ note.content }}</strong>
-          <span class="note-details">, {{ note.member.name if note.member else 'Unknown' }} at {{
-            note.date_created.strftime('%Y-%m-%d %H:%M:%S')}}</span>
-        </p>
-      </div>
-      {% endfor %}
-    </div>
-    {% endfor %}-->
     <ebody>
-      <div class="eink-note-box-container">
+      <div class="eink-note-box-container" id="eink-note-box-container">
         {% for group in groups %}
-            <div class="eink-note-box">
+            <div class="eink-note-box" data-group-id="{{ group.id }}">
                 <div class="eink-note-box-title">{{ group.name }}</div>
                 {% for note in group.notes %}
                     {% if (note.group and note.group.id == group.id) or (group.name == "Uncategorized" and not note.group_id)%}
-                        <div class="eink-note">
+                        <div class="eink-note" data-note-id="{{ note.id }}">
                             <p><strong>{{ note.content }}</strong>, 
                             <span class="eink-note-details">{{ note.member.name if note.member else 'Unknown' }} at {{ note.date_created.strftime('%Y-%m-%d %H:%M:%S')}}</span></p>
                         </div>
@@ -38,6 +26,37 @@
   </div>
   </body>
 {% endblock %}
+
+{% block extra_scripts %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const socket = io.connect(location.protocol + '//' + document.domain + ':' + location.port);
+
+        socket.on('connect', function() {
+            console.log('Connected to the server');
+        });
+
+        socket.on('note_update', function(data) {
+            const noteId = data.note_id;
+            const noteContent = data.note_content;
+            const noteElement = document.querySelector(`[data-note-id="${noteId}"]`);
+            if (noteElement) {
+                noteElement.querySelector('strong').textContent = noteContent;
+            }
+        });
+
+        socket.on('new_note', function(data) {
+            const noteId = data.note_id;
+            const noteContent = data.note_content;
+            const noteElement = document.querySelector(`[data-note-id="${noteId}"]`);
+            if (noteElement) {
+                noteElement.querySelector('strong').textContent = noteContent;
+            }
+        });
+    });
+</script>
+{% endblock %}
+
 {% block styles %}
   <style>
     body {

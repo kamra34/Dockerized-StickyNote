@@ -1,3 +1,6 @@
+import gevent.monkey
+gevent.monkey.patch_all()
+
 import os
 from datetime import datetime
 from flask import Flask, render_template, url_for, redirect, flash, request, abort
@@ -9,12 +12,13 @@ from alembic import op
 import sqlalchemy as sa
 from functools import wraps
 import time
-from flask_socketio import SocketIO, emit
+from flask_socketio import SocketIO, send, emit
 from flask.cli import AppGroup
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'your_secret_key'
-socketio = SocketIO(app)
+# Initialize SocketIO with your Flask app
+socketio = SocketIO(app, async_mode='gevent')
 
 app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URI', 'sqlite:///users.db')
 
@@ -113,9 +117,28 @@ def upgrade():
 def downgrade():
     op.drop_column('members', 'is_admin')
 
-@socketio.on('new_note')
-def handle_new_note(data):
-    emit('update_notes', data, broadcast=True)
+@app.route('/update_note', methods=['POST'])
+@login_required
+def update_note():
+    note_id = request.form['note_id']
+    note_content = request.form['note_content']
+    
+    # Update the note in the database
+    note = Note.query.get(note_id)
+    if note:
+        note.content = note_content
+        db.session.commit()
+
+        # Emit the "note_update" event with the updated data
+        socketio.emit('note_update', {'note_id': note_id, 'note_content': note_content})
+
+    return redirect(url_for('dashboard'))
+
+
+@socketio.on('some_event')
+def handle_some_event(data):
+    # Handle the event and broadcast the updated data to all connected clients
+    socketio.emit('update_notes', updated_data)
 
 
 @login_manager.user_loader
@@ -236,7 +259,7 @@ def dashboard():
         db.session.add(new_note)
         db.session.commit()
         flash('Note added successfully')
-        socketio.emit('new_note', {'note_id': new_note.id})
+        socketio.emit('new_note', {'note_id': new_note.id, 'note_content': note_content})
         return redirect(url_for('dashboard'))
 
     if isinstance(current_user, User):
@@ -489,5 +512,6 @@ def eink():
 if __name__ == "__main__":
     if os.environ.get("CREATE_TABLES", None):
         create_tables()
-    app.run(host="0.0.0.0", port=5000)
+    #app.run(host="0.0.0.0", port=5000)
+    socketio.run(app)
 
