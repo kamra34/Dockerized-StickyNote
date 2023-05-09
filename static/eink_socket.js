@@ -12,7 +12,6 @@ window.onload = function () {
     // Function to handle both note updates and new notes
     function handleNoteEvent(data) {
         console.log("Received note event:", data);
-        console.log("check what it is:", data);
 
         if (data.is_new) {
             console.log("Handling new note event");
@@ -38,6 +37,20 @@ window.onload = function () {
             }
         }
     }
+
+    function handleGroupAddedEvent(data) {
+        console.log("Received new group event:", data);
+      
+        // Add the group to the E-Ink board
+        const groupElement = document.querySelector(`.eink-note-box[data-group-id="${data.group_id}"]`);
+        if (!groupElement) {
+          const newGroup = document.createElement("div");
+          newGroup.classList.add("eink-note-box");
+          newGroup.setAttribute("data-group-id", data.group_id);
+          newGroup.innerHTML = `<div class="eink-note-box-title">${data.group_name}</div>`;
+          document.getElementById("eink-note-box-container").appendChild(newGroup);
+        }
+      }
 
     function deleteNote(note_id) {
         fetch('/delete_note/' + note_id)
@@ -103,5 +116,10 @@ window.onload = function () {
     socket.on("group_deleted", (data) => {
         console.log("Received group_deleted event:", data);
         handleGroupDeletedEvent(data);
+    });
+
+    socket.on("new_group", (data) => {
+        console.log("Received new_group event:", data);
+        handleGroupAddedEvent(data);
     });
 };

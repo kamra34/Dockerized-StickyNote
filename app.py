@@ -342,6 +342,8 @@ def groups():
         db.session.add(new_group)
         db.session.commit()
         flash('Group added successfully')
+         # Emit the new_group event
+        socketio.emit('new_group', {'group_id': new_group.id, 'group_name': new_group.name})
         return redirect(url_for('groups'))
 
     if isinstance(current_user, User):
