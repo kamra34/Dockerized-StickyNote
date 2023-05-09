@@ -56,6 +56,16 @@ window.onload = function () {
             });
     }
 
+    function handleGroupDeletedEvent(data) {
+        console.log("Received group_deleted event:", data);
+
+        // Remove the group from the E-Ink board
+        const groupElement = document.querySelector(`.eink-note-box[data-group-id="${data.group_id}"]`);
+        if (groupElement) {
+            groupElement.remove();
+        }
+    }
+
     // Listen for note events from the server
     socket.on("note_update", (data) => {
         console.log("Received note_update event:", data);
@@ -90,4 +100,8 @@ window.onload = function () {
         }
     });
 
+    socket.on("group_deleted", (data) => {
+        console.log("Received group_deleted event:", data);
+        handleGroupDeletedEvent(data);
+    });
 };

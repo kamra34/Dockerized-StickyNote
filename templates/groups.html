@@ -56,4 +56,18 @@
     </ul>
     <a href="{{ url_for('dashboard') }}" class="btn btn-secondary">Back to Dashboard</a>
 </div>
+
+{% block scripts %}
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
+        
+        // Listen for the group_deleted event
+        socket.on('group_deleted', function(data) {
+            // Refresh the page to show the updated groups
+            location.reload();
+        });
+    </script>
+{% endblock %}
+
 {% endblock %}

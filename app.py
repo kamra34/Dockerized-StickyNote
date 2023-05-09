@@ -486,6 +486,10 @@ def delete_group(group_id):
                 db.session.commit()
                 flash('Group deleted successfully')
 
+                # Emit group deleted event
+                socketio.emit('group_deleted', {'group_id': group.id})
+                logging.info(f"Emitted group_deleted event for group id {group.id}")
+
             return redirect(url_for('groups'))
 
     return render_template('delete_group.html', group=group)
