@@ -13,7 +13,7 @@ window.onload = function () {
     function handleNoteEvent(data) {
         console.log("Received note event:", data);
         console.log("check what it is:", data);
-    
+
         if (data.is_new) {
             console.log("Handling new note event");
             // Add the new note to the E-Ink board
@@ -37,7 +37,24 @@ window.onload = function () {
                 noteElement.querySelector("strong").textContent = data.note_content;
             }
         }
-    }    
+    }
+
+    function deleteNote(note_id) {
+        fetch('/delete_note/' + note_id)
+            .then((response) => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Failed to delete the note');
+                }
+            })
+            .then((data) => {
+                console.log('Note deleted:', data.note_id);
+            })
+            .catch((error) => {
+                console.error('Error:', error);
+            });
+    }
 
     // Listen for note events from the server
     socket.on("note_update", (data) => {
@@ -64,4 +81,13 @@ window.onload = function () {
     socket.on("reconnecting", (attempt) => {
         console.log("Attempting to reconnect to the server, attempt number:", attempt);
     });
+
+    socket.on('delete_note', (data) => {
+        console.log('Delete note received', data);
+        const noteElement = document.querySelector(`.eink-note[data-note-id="${data.note_id}"]`);
+        if (noteElement) {
+            noteElement.remove();
+        }
+    });
+
 };

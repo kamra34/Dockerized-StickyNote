@@ -15,6 +15,8 @@ import time
 from flask_socketio import SocketIO, send, emit
 from flask.cli import AppGroup
 import logging
+from flask import jsonify
+from flask_wtf.csrf import generate_csrf
 
 
 app = Flask(__name__)
@@ -316,7 +318,8 @@ def dashboard():
     group_ids = [group.id for group in groups]
     notes = Note.query.filter((Note.group_id.in_(group_ids)) | (Note.group_id == None)).order_by(Note.date_created.desc()).all()
 
-    return render_template('dashboard.html', notes=notes, groups=groups, members=members)
+    csrf_token = generate_csrf()
+    return render_template('dashboard.html', notes=notes, groups=groups, members=members, csrf_token=csrf_token)
     
 @socketio.on('new_note', namespace='/')
 def test_new_note_event(data):
@@ -450,7 +453,7 @@ def delete_member(user_id, member_id):
     return redirect(url_for('members', user_id=user_id))
 
 
-@app.route('/delete_note/<int:note_id>')
+@app.route('/delete_note/<int:note_id>', methods=['POST'])
 @login_required
 def delete_note(note_id):
     note = Note.query.get_or_404(note_id)
@@ -458,6 +461,7 @@ def delete_note(note_id):
         abort(403)
     db.session.delete(note)
     db.session.commit()
+    socketio.emit('delete_note', {'note_id': note.id})
     flash('Note deleted successfully')
     return redirect(url_for('dashboard'))
 
