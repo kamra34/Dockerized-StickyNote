@@ -1,14 +1,16 @@
 {% extends 'base.html' %}
 
 {% block scripts %}
-  <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
-  <script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js"></script>
+    <script>
     var socket = io.connect('http://' + document.domain + ':' + location.port);
-    socket.on('update_notes', function(data) {
-      // Refresh the page to show the new note
-      location.reload();
-    });
-  </script>
+    function handleNoteEvent(data) {
+        // Refresh the page to show the updated or new note
+        location.reload();
+    }
+    socket.on('note_update', handleNoteEvent);
+    socket.on('new_note', handleNoteEvent);
+    </script>
 {% endblock %}
 
 {% block content %}
@@ -45,7 +47,7 @@
     <h2>Your Notes:</h2>
     <div class="note-box-container">
         {% for group in groups %}
-            <div class="note-box">
+            <div class="note-box" data-group-id="{{ group.id }}">
                 <div class="note-box-title">{{ group.name }}</div>
                 {% for note in notes %}
                     {% if (note.group and note.group.id == group.id) or (group.name == "Uncategorized" and not note.group_id)%}

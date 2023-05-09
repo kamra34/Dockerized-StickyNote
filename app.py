@@ -14,8 +14,11 @@ from functools import wraps
 import time
 from flask_socketio import SocketIO, send, emit
 from flask.cli import AppGroup
+import logging
+
 
 app = Flask(__name__)
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s [%(levelname)s]: %(message)s')
 app.config['SECRET_KEY'] = 'your_secret_key'
 # Initialize SocketIO with your Flask app
 socketio = SocketIO(app, async_mode='gevent')
@@ -116,6 +119,11 @@ def upgrade():
 
 def downgrade():
     op.drop_column('members', 'is_admin')
+
+@socketio.on('connect')
+def test_connect():
+    print("Client connected via WebSocket")
+    emit('note_update', {'data': 'Connected'})
 
 @app.route('/update_note', methods=['POST'])
 @login_required
@@ -259,7 +267,16 @@ def dashboard():
         db.session.add(new_note)
         db.session.commit()
         flash('Note added successfully')
-        socketio.emit('new_note', {'note_id': new_note.id, 'note_content': note_content})
+        socketio.emit('new_note', {
+            'note_id': new_note.id,
+            'note_content': new_note.content,
+            'group_id': new_note.group_id,
+            'member_name': new_note.member.name if new_note.member else 'Unknown',
+            'date_created': new_note.date_created.strftime('%Y-%m-%d %H:%M:%S'),
+            'is_new': True
+        }, namespace='/')
+        logging.info(f"Emitted new_note event for note id {new_note.id} in namespace /")
+         
         return redirect(url_for('dashboard'))
 
     if isinstance(current_user, User):
@@ -300,8 +317,11 @@ def dashboard():
     notes = Note.query.filter((Note.group_id.in_(group_ids)) | (Note.group_id == None)).order_by(Note.date_created.desc()).all()
 
     return render_template('dashboard.html', notes=notes, groups=groups, members=members)
-
     
+@socketio.on('new_note', namespace='/')
+def test_new_note_event(data):
+    logging.info(f"Received new_note event on the server: {data}")
+
 
 @app.route('/groups', methods=['GET', 'POST'])
 @login_required
