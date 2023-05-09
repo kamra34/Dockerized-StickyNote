@@ -316,7 +316,8 @@ def dashboard():
         groups.append(uncategorized_group)
 
     group_ids = [group.id for group in groups]
-    notes = Note.query.filter((Note.group_id.in_(group_ids)) | (Note.group_id == None)).order_by(Note.date_created.desc()).all()
+    #notes = Note.query.filter((Note.group_id.in_(group_ids)) | (Note.group_id == None)).order_by(Note.date_created.desc()).all()
+    notes = Note.query.filter((Note.group_id.in_(group_ids)) | (Note.group_id.is_(None))).order_by(Note.date_created.desc()).all()
 
     csrf_token = generate_csrf()
     return render_template('dashboard.html', notes=notes, groups=groups, members=members, csrf_token=csrf_token)
